@@ -294,7 +294,7 @@ def get_assistant_response(api_key, messages):
                                             print(f"{content}\033[0m", end="", flush=True)
                                             last_was_code_block = False
                                         else:
-                                            print(f"\033[3m{content}", end="", flush=True)
+                                            print(f"\033[96m{content}", end="", flush=True)
                                             last_was_code_block = True
                                     else:
                                         print(content, end="", flush=True)
@@ -472,22 +472,23 @@ def interactive_input_handler(command_args):
     EOF = 'EOF'
     if command_args:
         EOF = command_args
-    message = ''
+    message = []
     while True:
         try:
             user_input = input(f"\033[96m# \033[94m") # 按原样存储
             if user_input == EOF:
                 break
-            message += user_input + '\n'
+            message.append(user_input)
         except EOFError: 
             break
         except KeyboardInterrupt:
             print("\n\033[91m取消此次输入请求。\033[0m")
             return True
+    message = '\n'.join(message)
     if not message or message.isspace():
         print("\033[31m没有输入内容。\033[0m")
         return True
-    return {"modify_user_message": True, "data": message}
+    return {"modify_user_message": True, "data": (message)}
 
 def handle_user_command(command, messages):
     global CONFIG_APIKEY

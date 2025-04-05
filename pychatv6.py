@@ -128,6 +128,7 @@ global_params = {
     "thinking_tag/end": "</think>", # 用于 R1
     "cot_in_context": False, # 是否将 COT 作为上下文的一部分
     "prompt_preload": None, # 若指定，则直接使用此提示词，不进行二次询问
+    "render_code_block": True, # 是否渲染代码块
 }
 
 # 获取参数值的函数
@@ -289,7 +290,7 @@ def get_assistant_response(api_key, messages):
                                     if last_was_reasoning:  # 从推理切换到正式回答
                                         print(f"\n{global_params.get('thinking_tag/end', '<｜end▁of▁thinking｜>')}\033[0m\n", end="")  # 结束颜色并换行
                                         last_was_reasoning = False
-                                    if content == '```' or content.strip() == '```': # 对于 AI 模型，“```”通常会在同一个token
+                                    if global_params.get('render_code_block', False) and content == '```' or content.strip() == '```': # 对于 AI 模型，“```”通常会在同一个token
                                         if last_was_code_block:
                                             print(f"{content}\033[0m", end="", flush=True)
                                             last_was_code_block = False

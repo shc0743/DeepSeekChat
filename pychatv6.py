@@ -252,6 +252,7 @@ def get_assistant_response(api_key, messages):
         assistant_message = ""
         reasoning_buffer = ""  # 用于暂存推理内容
         last_was_reasoning = False  # 跟踪上次内容类型
+        last_was_code_block = False  # 跟踪上次内容类型
         
         print("助手: ", end="", flush=True)
         try:
@@ -288,7 +289,15 @@ def get_assistant_response(api_key, messages):
                                     if last_was_reasoning:  # 从推理切换到正式回答
                                         print(f"\n{global_params.get('thinking_tag/end', '<｜end▁of▁thinking｜>')}\033[0m\n", end="")  # 结束颜色并换行
                                         last_was_reasoning = False
-                                    print(f"\033[0m{content}", end="", flush=True)  # 正常颜色
+                                    if content == '```' or content.strip() == '```': # 对于 AI 模型，“```”通常会在同一个token
+                                        if last_was_code_block:
+                                            print(f"{content}\033[0m", end="", flush=True)
+                                            last_was_code_block = False
+                                        else:
+                                            print(f"\033[3m{content}", end="", flush=True)
+                                            last_was_code_block = True
+                                    else:
+                                        print(content, end="", flush=True)
                                     assistant_message += content  # 只存储正式内容
                                     
                         except json.JSONDecodeError as e:
@@ -501,7 +510,7 @@ def handle_user_command(command, messages):
         "prompt": lambda: (prompt_handler(command[len("prompt "):].strip(), messages), True),
         "shell": lambda: (shell_command_handler(command[len("shell "):].strip()), True),
         "input": lambda: (interactive_input_handler(command[len("input "):].strip())),
-        "inp": lambda: (interactive_input_handler(command[len("inp "):].strip())),
+        "i": lambda: (interactive_input_handler(command[len("i "):].strip())),
     }
     # 命令说明字典
     command_docs = {
@@ -511,7 +520,7 @@ def handle_user_command(command, messages):
         "clear": "清空当前对话历史但不重置系统提示。如果要重置系统提示，请使用 /prompt reset。",
         "cls": "清屏。",
         "input": "允许用户打开交互式输入 Shell 以输入多行文本。",
-        "inp": "input 的别名。",
+        "i": "input 的别名。",
         "set": "设置或清除应用程序的相关参数。",
         "set2": "临时设置应用程序的相关参数（不保存到 preferences.json）。",
         "get": "获取应用程序的参数值。用法: /get <参数名> 或 /get",
@@ -528,7 +537,7 @@ def handle_user_command(command, messages):
         "save": "/save <文件名>",
         "load": "/load <文件名>",
         "input": f"打开交互式输入 Shell 以输入多行文本。\n\t\t/input\n\t\t/input [<EOF>]\n/input\t\t打开交互式输入 Shell 以输入多行文本。默认使用 EOF 作为消息结束的标志。\n/input <EOF>\t打开交互式输入 Shell 以输入多行文本，使用提供的 <EOF> 作为消息结束的标志。\n对于每一个子命令，也可以通过按下 Ctrl+{ 'Z' if platform.system() == 'Windows' else 'D' } 来结束输入。或者，使用 Ctrl+C 取消输入。",
-        "inp": "打开交互式输入 Shell 以输入多行文本。这是 input 的别名。使用 /help input 查看帮助。",
+        "i": "打开交互式输入 Shell 以输入多行文本。这是 input 的别名。使用 /help input 查看帮助。",
         "set": "设置或清除参数。\n用法: /set <参数名> [<值>]",
         "set2": "临时设置应用程序的相关参数（不保存到 preferences.json）。\n用法: /set2 <参数名> <值>",
         "get": "/get\n\t/get <参数名>",

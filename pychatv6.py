@@ -246,12 +246,12 @@ def get_inject_prompt():
     current_time = datetime.now(datetime.now().astimezone().tzinfo).strftime("%Y%m%dT%H%M%S.%f%z")
     tz = datetime.now(datetime.now().astimezone().tzinfo).strftime("%z")
     return f'<system>' + \
-        f'<data><name>PreferredLanguage</name><value>{preferred_language}</value></data>' + \
-        f'<data><name>CurrentTime</name><value>{current_time}</value></data>' + \
-        f'<data><name>TimeZone</name><value>{tz}</value></data>' + \
-        f'<config>This is pre-injected metadata by the system of the conversation. Please do not mention this part in your response.</config>' + \
+        f'PreferredLanguage: {preferred_language}\n' + \
+        f'CurrentTime: {current_time}\n' + \
+        f'TimeZone: {tz}\n' + \
+        f'Notice: These information are for internal use only. Don\'t show them to the user.' + \
         f'</system>\n\n'
-        # TODO f'<data><name>Memory</name><value>嵌套value</value></data>' + \
+        # TODO f'Memory: 嵌套value\n' + \
 
 # 调用 API 获取助手的回复
 def get_assistant_response(api_key, messages):

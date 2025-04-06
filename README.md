@@ -15,6 +15,26 @@ DeepSeekChat 是一个基于 DeepSeek API 的演示项目。本项目使用 Pyth
 4. 打开下载的 Python 文件
 5. 开始对话
 
+## 全局参数
+
+本项目使用以下默认全局参数，可通过 `/set` 或 `/set2` 命令修改：
+
+| 参数名 | 默认值 | 说明 |
+|--------|--------|------|
+| `api_key_filename` | `skapikey.txt` | API Key 存储文件名 |
+| `context_limit` | `20` | 上下文消息数量上限 |
+| `skip_account_check` | `False` | 启动时跳过 API Key 检查 |
+| `model` | `deepseek-chat` | 默认使用的模型 |
+| `thinking_tag/begin` | `<think>` | 思维链标记起始符 |
+| `thinking_tag/end` | `</think>` | 思维链标记结束符 |
+| `cot_in_context` | `False` | 是否将思维链(COT)保留在上下文中 |
+| `prompt_preload` | `None` | 预加载的提示词（跳过询问） |
+| `render_code_block` | `True` | 是否渲染代码块样式 |
+| `prompt_inject` | `True` | 自动注入系统时间等提示词，防止 AI 时间错乱 |
+| `language` | `auto` | 界面语言（auto/zh/en等） |
+
+可通过 `/get [参数名]` 查看当前值。使用 `/set` 永久修改，或使用 `set2` 临时修改。
+
 ## Command List
 
 本项目提供了丰富的 `slash command` 支持，具体列表如下:

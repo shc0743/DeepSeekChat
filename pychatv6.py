@@ -7,7 +7,9 @@ import time
 import sys
 import webbrowser
 from ctypes import wintypes
-
+import locale
+from datetime import datetime, timezone
+    
 # 您也可以选择嵌入式 api key
 CONFIG_APIKEY = "PASTE_YOUR_API_KEY_HERE"
 
@@ -129,6 +131,8 @@ global_params = {
     "cot_in_context": False, # 是否将 COT 作为上下文的一部分
     "prompt_preload": None, # 若指定，则直接使用此提示词，不进行二次询问
     "render_code_block": True, # 是否渲染代码块
+    "prompt_inject": True, # 预注入提示词，例如系统时间，防止 AI 出现时间错乱
+    "language": "auto", # 语言，用于提示词
 }
 
 # 获取参数值的函数
@@ -234,13 +238,30 @@ def initialize_messages(system_prompt):
         {"role": "system", "content": system_prompt}
     ]
 
+# 获取提示词注入内容
+def get_inject_prompt():
+    # 获取首选语言
+    preferred_language = get_param("language")
+    # 获取当前时间和时区
+    current_time = datetime.now(datetime.now().astimezone().tzinfo).strftime("%Y%m%dT%H%M%S.%f%z")
+    tz = datetime.now(datetime.now().astimezone().tzinfo).strftime("%z")
+    return f'<system>' + \
+        f'<data><name>PreferredLanguage</name><value>{preferred_language}</value></data>' + \
+        f'<data><name>CurrentTime</name><value>{current_time}</value></data>' + \
+        f'<data><name>TimeZone</name><value>{tz}</value></data>' + \
+        f'</system>\n\n'
+        # TODO f'<data><name>Memory</name><value>嵌套value</value></data>' + \
+
 # 调用 API 获取助手的回复
 def get_assistant_response(api_key, messages):
+    messages = messages.copy() # 复制一份，防止注入提示词时改动原内容
     url = "https://api.deepseek.com/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
+    if get_param("prompt_inject") == True:
+        messages[0].content = get_inject_prompt() + messages[0].content
     data = {
         "model": global_params["model"] if "model" in global_params else "deepseek-chat",
         "messages": messages,
@@ -556,6 +577,7 @@ def handle_user_command(command, messages):
         "input": lambda: (interactive_input_handler(command[len("input "):].strip())),
         "i": lambda: (interactive_input_handler(command[len("i "):].strip())),
         "homepage": lambda: (homepage_handler(), True),
+        "debug:get_inject_prompt": lambda: (print(get_inject_prompt()), True),
     }
     # 命令说明字典
     command_docs = {
@@ -581,6 +603,7 @@ def handle_user_command(command, messages):
         "about": "进入交互式 关于信息 Shell。",
         "license": "\033[94m[本项目使用 \033[96mGPL-3.0\033[94m]\033[0m 显示许可证信息。",
         "homepage": "打开项目主页。",
+        "debug:get_inject_prompt": "Call get_inject_prompt()",
     }
     # 命令说明字典
     command_details = {

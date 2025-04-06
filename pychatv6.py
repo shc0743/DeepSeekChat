@@ -133,6 +133,7 @@ global_params = {
     "render_code_block": True, # 是否渲染代码块
     "prompt_inject": True, # 预注入提示词，例如系统时间，防止 AI 出现时间错乱
     "language": "auto", # 语言，用于提示词
+    "temperature": 1.3, # 根据建议，“通用对话”建议设为1.3 https://api-docs.deepseek.com/zh-cn/quick_start/parameter_settings
 }
 
 # 获取参数值的函数
@@ -263,10 +264,14 @@ def get_assistant_response(api_key, messages):
     }
     if get_param("prompt_inject") == True:
         messages[0]['content'] = get_inject_prompt() + messages[0]['content']   
+    tem = global_params.get('temperature', 1)
+    if not isinstance(tem, (int, float)) or not 0 <= tem <= 2:
+        raise ValueError("参数异常，请检查全局配置项 temperature must be a number between 0 and 2")
     data = {
         "model": global_params["model"] if "model" in global_params else "deepseek-chat",
         "messages": messages,
-        "stream": True
+        "stream": True,
+        "temperature": tem
     }
     try:
         response = requests.post(url, headers=headers, json=data, stream=True, timeout=90)

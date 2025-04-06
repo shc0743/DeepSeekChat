@@ -32,6 +32,7 @@ DeepSeekChat 是一个基于 DeepSeek API 的演示项目。本项目使用 Pyth
 | `render_code_block` | `True` | 是否渲染代码块样式 |
 | `prompt_inject` | `True` | 自动注入系统时间等提示词，防止 AI 时间错乱 |
 | `language` | `auto` | 界面语言（auto/zh/en等） |
+| `temperature` | `1.3` | 模型的 temperature，参考： https://api-docs.deepseek.com/zh-cn/quick_start/parameter_settings |
 
 可通过 `/get [参数名]` 查看当前值。使用 `/set` 永久修改，或使用 `set2` 临时修改。
 

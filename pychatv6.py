@@ -491,6 +491,48 @@ def interactive_input_handler(command_args):
         return True
     return {"modify_user_message": True, "data": (message)}
 
+def homepage_handler():
+    homepages = [
+        'https://redirect-static.chcs1013.com/redirect?id=pychatapp',
+        'https://github.com/shc0743/DeepSeekChat/',
+    ]
+    # 使用 request 测试各个主页的连通性 （多线程）
+    print('Testing network connectivity...')
+    import concurrent.futures
+
+    def test_homepage_connectivity(url):
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                return url, True
+            return url, False
+        except requests.RequestException:
+            return url, False
+
+    def homepage_handler2(homepages):
+        accessible_homepages = []
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(test_homepage_connectivity, homepages)
+
+        for url, is_accessible in results:
+            if is_accessible:
+                accessible_homepages.append(url)
+        return accessible_homepages
+    
+    accessible_homepages = homepage_handler2(homepages)
+    if not accessible_homepages:
+        for url in homepages:
+            print(f"\033[91m!\033[0m   {url}\033[0m")
+        print("\033[31m所有主页均无法访问。\033[0m")
+        return
+    for url in homepages:
+        ok = url in accessible_homepages
+        print(f"{'\033[92m*' if ok else '\033[91m!'}\033[0m {'* ' if url == accessible_homepages[0] else '  '}{url}\033[0m")
+    
+    print(f'Attempting to open: {accessible_homepages[0]}')
+    webbrowser.open(accessible_homepages[0])
+
 def handle_user_command(command, messages):
     global CONFIG_APIKEY
     # 命令处理函数字典
@@ -513,6 +555,7 @@ def handle_user_command(command, messages):
         "shell": lambda: (shell_command_handler(command[len("shell "):].strip()), True),
         "input": lambda: (interactive_input_handler(command[len("input "):].strip())),
         "i": lambda: (interactive_input_handler(command[len("i "):].strip())),
+        "homepage": lambda: (homepage_handler(), True),
     }
     # 命令说明字典
     command_docs = {
@@ -523,6 +566,8 @@ def handle_user_command(command, messages):
         "cls": "清屏。",
         "input": "允许用户打开交互式输入 Shell 以输入多行文本。",
         "i": "input 的别名。",
+        "attach": "将附件添加到对话上下文。用法: /attach <文件名>",
+        "attachment": "管理当前对话的附件。用法: /attachment <list|show|remove> [<附件 ID>]",
         "set": "设置或清除应用程序的相关参数。",
         "set2": "临时设置应用程序的相关参数（不保存到 preferences.json）。",
         "get": "获取应用程序的参数值。用法: /get <参数名> 或 /get",
@@ -532,7 +577,10 @@ def handle_user_command(command, messages):
         "shell": "打开系统 Shell。用法: /shell [command]",
         "balance": "查询账户余额。",
         "topup": "打开充值页面。", "top-up": "打开充值页面。", "recharge": "打开充值页面。",
-        "help": "显示所有可用命令及其说明。使用 /help [<command>] 查看子命令的具体用法。"
+        "help": "显示所有可用命令及其说明。使用 /help [<command>] 查看子命令的具体用法。",
+        "about": "进入交互式 关于信息 Shell。",
+        "license": "\033[94m[本项目使用 \033[96mGPL-3.0\033[94m]\033[0m 显示许可证信息。",
+        "homepage": "打开项目主页。",
     }
     # 命令说明字典
     command_details = {
@@ -540,6 +588,8 @@ def handle_user_command(command, messages):
         "load": "/load <文件名>",
         "input": f"打开交互式输入 Shell 以输入多行文本。\n\t\t/input\n\t\t/input [<EOF>]\n/input\t\t打开交互式输入 Shell 以输入多行文本。默认使用 EOF 作为消息结束的标志。\n/input <EOF>\t打开交互式输入 Shell 以输入多行文本，使用提供的 <EOF> 作为消息结束的标志。\n对于每一个子命令，也可以通过按下 Ctrl+{ 'Z' if platform.system() == 'Windows' else 'D' } 来结束输入。或者，使用 Ctrl+C 取消输入。",
         "i": "打开交互式输入 Shell 以输入多行文本。这是 input 的别名。使用 /help input 查看帮助。",
+        "attach": "将附件添加到对话上下文。\n用法: /attach <文件名>\n注意：暂时无法修改附件的附加细节。",
+        "attachment": "管理当前对话的附件。\n用法: /attachment <list|show|remove> [<附件 ID>]\nlist\t列出所有附件。\nshow\t显示指定附件的内容。\nremove\t移除指定的附件。",
         "set": "设置或清除参数。\n用法: /set <参数名> [<值>]",
         "set2": "临时设置应用程序的相关参数（不保存到 preferences.json）。\n用法: /set2 <参数名> <值>",
         "get": "/get\n\t/get <参数名>",
@@ -548,6 +598,7 @@ def handle_user_command(command, messages):
         "shell": "打开系统 Shell。\n用法: /shell [command]\n如果没有指定命令，则打开系统默认 Shell。对于 Windows，默认 Shell 是 cmd.exe；对于 Linux 和 macOS，默认 Shell 是 bash。",
         "balance": "查询账户余额。\n用法: /balance",
         "help": "/help [<command>]",
+        "license": "\033[94m[本项目使用 \033[96mGPL-3.0\033[94m]\033[0m 显示许可证信息。\n用法: /license",
     }
     # 单独处理 /help 命令
     command_name = command.split()[0] if command else ""
@@ -633,18 +684,21 @@ def main():
     nUserCancelCount = 0
     while True:
         try:
-            user_message = input("\033[36m你: ").strip()
-            print("\033[0m", end='')
+            try:
+                user_message = input("\033[36m你: ").strip()
+                print("\033[0m", end='')
+            except BaseException:
+                print("\n\033[91m操作被中断\033[0m")
+                if nUserCancelCount > 1: # 3次
+                    try:
+                        input('\033[91m想要退出? 再次按下 Ctrl-C \033[96m')
+                    except BaseException:
+                        print('\033[0m')
+                        break
+                nUserCancelCount += 1
+                continue
         except BaseException:
-            print("\n\033[91m操作被中断\033[0m")
-            if nUserCancelCount > 1: # 3次
-                try:
-                    input('\033[91m想要退出? 再次按下 Ctrl-C \033[96m')
-                except BaseException:
-                    print('\033[0m')
-                    break
-            nUserCancelCount += 1
-            continue
+            print('\033[91m操作反复被中断\033[0m')
 
         nUserCancelCount = 0
         # 处理斜杠命令

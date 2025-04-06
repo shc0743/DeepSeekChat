@@ -249,6 +249,7 @@ def get_inject_prompt():
         f'<data><name>PreferredLanguage</name><value>{preferred_language}</value></data>' + \
         f'<data><name>CurrentTime</name><value>{current_time}</value></data>' + \
         f'<data><name>TimeZone</name><value>{tz}</value></data>' + \
+        f'<config>This is pre-injected metadata by the system of the conversation. Please do not mention this part in your response.</config>' + \
         f'</system>\n\n'
         # TODO f'<data><name>Memory</name><value>嵌套value</value></data>' + \
 
@@ -261,7 +262,7 @@ def get_assistant_response(api_key, messages):
         "Authorization": f"Bearer {api_key}"
     }
     if get_param("prompt_inject") == True:
-        messages[0].content = get_inject_prompt() + messages[0].content
+        messages[0]['content'] = get_inject_prompt() + messages[0]['content']   
     data = {
         "model": global_params["model"] if "model" in global_params else "deepseek-chat",
         "messages": messages,
@@ -710,6 +711,10 @@ def main():
             try:
                 user_message = input("\033[36m你: ").strip()
                 print("\033[0m", end='')
+                
+                if not user_message.strip():
+                    print("\033[91m输入内容为空。\033[0m")
+                    continue
             except BaseException:
                 print("\n\033[91m操作被中断\033[0m")
                 if nUserCancelCount > 1: # 3次

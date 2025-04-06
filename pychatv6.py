@@ -192,8 +192,11 @@ def set_param(key, value, save_to_file=True):
                 save_preference(key, None)  # 新增此行p
                 print(f"参数 {key} 已清除")
             return  # 直接返回
-        # 首先尝试解析为整数
-        global_params[key] = int(value)
+        # 首先尝试解析
+        global_params[key] = float(value)
+        # 检查是否是整数（如 2.0）
+        if global_params[key].is_integer():
+            global_params[key] = int(global_params[key])
     except ValueError:
         try:
             # 如果整数解析失败，尝试解析为布尔值

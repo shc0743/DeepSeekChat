@@ -9,6 +9,7 @@ import webbrowser
 from ctypes import wintypes
 import locale
 from datetime import datetime, timezone
+import copy
     
 # 您也可以选择嵌入式 api key
 CONFIG_APIKEY = "PASTE_YOUR_API_KEY_HERE"
@@ -250,13 +251,13 @@ def get_inject_prompt():
         f'PreferredLanguage: {preferred_language}\n' + \
         f'CurrentTime: {current_time}\n' + \
         f'TimeZone: {tz}\n' + \
-        f'Notice: These information are for internal use only. Don\'t show them to the user.' + \
+        f'Notice: These information are for reference only. Don\'t proactively show them unless user asks.' + \
         f'</system>\n\n'
         # TODO f'Memory: 嵌套value\n' + \
 
 # 调用 API 获取助手的回复
 def get_assistant_response(api_key, messages):
-    messages = messages.copy() # 复制一份，防止注入提示词时改动原内容
+    messages = copy.deepcopy(messages)  # 使用深拷贝代替浅拷贝 # 复制一份，防止注入提示词时改动原内容
     url = "https://api.deepseek.com/chat/completions"
     headers = {
         "Content-Type": "application/json",

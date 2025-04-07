@@ -279,7 +279,20 @@ def get_assistant_response(api_key, messages):
     }
     try:
         response = requests.post(url, headers=headers, json=data, stream=True, timeout=90)
-        response.raise_for_status()
+        # 手动检查状态码而不是使用raise_for_status()
+        if response.status_code >= 400:
+            # 尝试获取错误详情
+            error_detail = ""
+            try:
+                error_data = response.json()
+                error_detail = f"\n错误详情: {json.dumps(error_data, indent=2, ensure_ascii=False)}"
+            except ValueError:
+                error_detail = f"\n响应内容: {response.text}"
+            
+            error_msg = (f"API请求失败，状态码: {response.status_code}\n"
+                        f"原因: {response.reason}{error_detail}")
+            print(f"API调用异常: {error_msg}")
+            return f"API调用异常: {error_msg}"
 
         assistant_message = ""
         reasoning_buffer = ""  # 用于暂存推理内容
@@ -342,9 +355,18 @@ def get_assistant_response(api_key, messages):
         if get_param('cot_in_context') is True:
             return (f"<｜begin▁of▁thinking｜>{reasoning_buffer}<｜end▁of▁thinking｜>{assistant_message}")
         return assistant_message
+        
     except requests.exceptions.RequestException as e:
-        print(f"API调用异常: {e}")
-        return f"API调用异常: {e}"
+        error_msg = f"请求异常: {str(e)}"
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_text = e.response.text
+                if error_text:
+                    error_msg += f"\n响应内容: {error_text}"
+            except:
+                pass
+        print(f"API调用异常: {error_msg}")
+        return f"API调用异常: {error_msg}"
 
 # 保存对话历史到文件
 def save_conversation(messages, filename):
@@ -627,7 +649,7 @@ def handle_user_command(command, messages):
         "set2": "临时设置应用程序的相关参数（不保存到 preferences.json）。\n用法: /set2 <参数名> <值>",
         "get": "/get\n\t/get <参数名>",
         "passwd": "显示或更新 API Key。\n用法:\n\t/passwd [<NewValue>] [--persist]\n--persist    将 API Key 保存到文件。",
-        "prompt": "提示词管理。\n用法:\n\t/prompt get\n\t/prompt set <提示词>\n\t/prompt reset\n\t/prompt preload [<提示词>]\n\t/prompt reset-proload\nget\t获取当前提示词。\nset <提示词>\t设置新的提示词。\nreset\t清空提示词。\npreload [提示词]\t将提示词写入预定义配置文件。如果没有指定提示词，则写入当前提示词。\nreset-preload\t清空预定义提示词。",
+        "prompt": "提示词管理。\n用法:\n\t/prompt get\n\t/prompt set <提示词>\n\t/prompt reset\n\t/prompt preload [<提示词>]\n\t/prompt reset-preload\nget\t获取当前提示词。\nset <提示词>\t设置新的提示词。\nreset\t清空提示词。\npreload [提示词]\t将提示词写入预定义配置文件。如果没有指定提示词，则写入当前提示词。\nreset-preload\t清空预定义提示词。",
         "shell": "打开系统 Shell。\n用法: /shell [command]\n如果没有指定命令，则打开系统默认 Shell。对于 Windows，默认 Shell 是 cmd.exe；对于 Linux 和 macOS，默认 Shell 是 bash。",
         "balance": "查询账户余额。\n用法: /balance",
         "help": "/help [<command>]",
@@ -770,6 +792,7 @@ def main():
             messages.append({"role": "assistant", "content": assistant_message})
         except Exception as e:
             print(f"调用提供程序时发生错误: {e}")
+            messages.append({"role": "assistant", "content": 'Unexpected ' + str(e)})
             continue  # 继续对话，而不是退出
     print("正在退出。")
 

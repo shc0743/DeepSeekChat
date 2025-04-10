@@ -10,7 +10,8 @@ from ctypes import wintypes
 import locale
 from datetime import datetime, timezone
 import copy
-    
+import readline # fix the input bug
+
 # 您也可以选择嵌入式 api key
 CONFIG_APIKEY = "PASTE_YOUR_API_KEY_HERE"
 

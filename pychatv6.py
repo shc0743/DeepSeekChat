@@ -772,6 +772,9 @@ def main():
                 continue  # 跳过后续逻辑，继续等待用户输入
 
         # 检查上下文消息数量是否超过上限
+        # 确保 context_limit 存在，如果不存在则设为默认值 0
+        if "context_limit" not in global_params:
+            global_params["context_limit"] = 0
         while global_params["context_limit"] != 0 and ((len(messages) - 1 +1) / 2) > global_params["context_limit"]:
             # 只在第一次达到限制时显示提示
             if "limit_has_reached_dont_show_tip_again" not in global_params or global_params["limit_has_reached_dont_show_tip_again"] == False:

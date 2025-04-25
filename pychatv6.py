@@ -10,6 +10,7 @@ from ctypes import wintypes
 import locale
 from datetime import datetime, timezone
 import copy
+from sys import exit
 
 try:
     import readline # fix the input bug

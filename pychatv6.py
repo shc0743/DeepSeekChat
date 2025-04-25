@@ -16,6 +16,28 @@ try:
 except Exception:
     pass
 
+def check_if_locked(file_path):
+    """
+    检查文件是否被锁定
+    """
+    try:
+        with open(file_path, 'r') as file:
+            api_key = file.read().strip()
+            if not api_key:
+                return False
+            # Check if api_key starts with '{'
+            if api_key.startswith('{'):
+                try:
+                    # Try to parse as JSON
+                    key_json = json.loads(api_key)
+                    if key_json.get("v") == 5.5:
+                        return True
+                except BaseException:
+                    pass
+    except FileNotFoundError:
+        pass
+    return False
+
 # 您也可以选择嵌入式 api key
 CONFIG_APIKEY = "PASTE_YOUR_API_KEY_HERE"
 
@@ -33,51 +55,45 @@ def read_api_key(file_path):
             if not api_key:
                 raise ValueError("API Key 未找到或为空")
             # Check if api_key starts with '{'
-            if api_key.startswith('{'):
+            if check_if_locked(file_path):
                 try:
-                    # Try to parse as JSON
-                    key_json = json.loads(api_key)
-                    if key_json.get("v") == 5.5:
-                        # 处理加密的KEY
-                        from encryption import decrypt_data
-                        from getpass import getpass
-                        ## 清空屏幕
-                        # os.system("cls" if (sys.platform.startswith('win')) else "reset")
-                        while True:
+                    # 处理加密的KEY
+                    from encryption import decrypt_data
+                    from getpass import getpass
+                    ## 清空屏幕
+                    # os.system("cls" if (sys.platform.startswith('win')) else "reset")
+                    while True:
+                        try:
+                            print(f'\033[36m请输入密码。\033[0m\n\033[32mCtrl-C\033[0m 以重设密码。')
+                            password = getpass()
+                            api_key = decrypt_data(api_key, password)
+                            print('')
+                            break
+                        except KeyboardInterrupt:
+                            # 捕获 Ctrl-D 重设密码
+                            print("确认重设密码？这将重置当前 API Key。")
                             try:
-                                print(f'\033[36m请输入密码。\033[0m\n\033[32mCtrl-C\033[0m 以重设密码。')
-                                password = getpass()
-                                api_key = decrypt_data(api_key, password)
-                                print('')
-                                break
-                            except KeyboardInterrupt:
-                                # 捕获 Ctrl-D 重设密码
-                                print("确认重设密码？这将重置当前 API Key。")
-                                try:
-                                    user_input = input("确认重设密码，输入 e 以退出[y/N/e]: ").strip().lower()
-                                    if user_input == 'y':
-                                        # 删除当前的 API Key
-                                        os.remove(file_path)
-                                        print("密码已重设。重新运行应用程序以继续。")
-                                        time.sleep(3)
-                                        exit(1)
-                                    elif user_input == 'e':
-                                        print("操作已取消。")
-                                        exit(1)
-                                    continue
-                                except KeyboardInterrupt:
-                                    print("\n操作已取消。")
+                                user_input = input("确认重设密码，输入 e 以退出[y/N/e]: ").strip().lower()
+                                if user_input == 'y':
+                                    # 删除当前的 API Key
+                                    os.remove(file_path)
+                                    print("密码已重设。重新运行应用程序以继续。")
+                                    time.sleep(3)
                                     exit(1)
-                            except Exception as e:
-                                # 密码错误
-                                print(f'\033[91m密码错误。{e}\033[0m')
+                                elif user_input == 'e':
+                                    print("操作已取消。")
+                                    exit(1)
                                 continue
+                            except KeyboardInterrupt:
+                                print("\n操作已取消。")
+                                exit(1)
+                        except Exception as e:
+                            # 密码错误
+                            print(f'\033[91m密码错误。{e}\033[0m')
+                            continue
                 except ImportError:
                     print("\033[91mAPI Key 被加密，但是没有解密模块。请先下载加密模块。\033[0m")
                     time.sleep(3)
-                except json.JSONDecodeError:
-                    # Not valid JSON, continue with original api_key
-                    pass
             CONFIG_APIKEY = api_key
             return api_key
     except FileNotFoundError:
@@ -494,20 +510,9 @@ def passwd_handler(command_args):
     if not args:
         # 显示当前 API Key
         # 首先判断是否锁定
-        with open(get_param("api_key_filename"), 'r') as file:
-            api_key = file.read().strip()
-            if not api_key:
-                raise ValueError("API Key 未找到或为空")
-            # Check if api_key starts with '{'
-            if api_key.startswith('{'):
-                try:
-                    # Try to parse as JSON
-                    key_json = json.loads(api_key)
-                    if key_json.get("v") == 5.5:
-                        print("\033[31m错误: 由于已设置锁定，系统阻止输出当前 API Key。\033[0m")
-                        return True
-                except BaseException:
-                    pass
+        if check_if_locked(get_param("api_key_filename")):
+            print("\033[31m错误: 由于已设置锁定，系统阻止输出当前 API Key。\033[0m")
+            return True
         print(f"当前 API Key (3秒后清除):\n\033[92m{CONFIG_APIKEY}", end="\r", flush=True)
         time.sleep(3)  # 延迟 3 秒
         print("*" * (len(CONFIG_APIKEY) + 30) + "\r")  # 清除显示
@@ -656,14 +661,14 @@ def lock_handler(command):
     global CONFIG_APIKEY
     from getpass import getpass
     try:
-        from encryption import encrypt_data, decrypt_data
+        from encryption import encrypt_data
         
         if command == "set":
             print("\033[93m请务必牢记您的密码！我们无法帮您找回密码！\033[0m")
             password = getpass("输入密码：")
             confirm = getpass("再次输入密码：")
             if password != confirm:
-                print("\033[91m密码不匹配！\033[0m")
+                print("\033[31m密码不匹配！\033[0m")
                 return True
             try:
                 encrypted = encrypt_data(CONFIG_APIKEY, password)
@@ -679,9 +684,17 @@ def lock_handler(command):
                     file.write(CONFIG_APIKEY)
                 print("\033[92m加密已取消。\033[0m")
         elif command == "force" or command == "":
+            if not check_if_locked(get_param("api_key_filename")):
+                print("\033[31m应用程序未加密。\033[0m")
+                return True
+            if command == "":
+                user_choice = input("确定锁定应用程序？[y/N] ")
+                if user_choice.lower() != 'y':
+                    print("\033[31m操作已取消。\033[0m")
+                    return True
             CONFIG_APIKEY = None
         else:
-            print("\033[91m无效命令。用法: /lock [set|reset|force]\033[0m")
+            print("\033[31m无效命令。用法: /lock [set|reset|force]\033[0m")
     except ImportError:
         print("\033[91m没有加密模块。请先下载加密模块。\033[0m")
         return True

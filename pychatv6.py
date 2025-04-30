@@ -68,8 +68,9 @@ def read_api_key(file_path):
                         try:
                             print(f'\033[36m请输入密码。\033[0m\n\033[32mCtrl-C\033[0m 以重设密码。')
                             password = getpass()
+                            print('\r\033[94m正在验证...', end='\r')
                             api_key = decrypt_data(api_key, password)
-                            print('')
+                            print(' ' * 12)
                             break
                         except KeyboardInterrupt:
                             # 捕获 Ctrl-D 重设密码
@@ -91,7 +92,7 @@ def read_api_key(file_path):
                                 exit(1)
                         except Exception as e:
                             # 密码错误
-                            print(f'\033[91m密码错误。{e}\033[0m')
+                            print(f'\033[91m密码错误。    \033[0m', end='\033[A\033[A\033[A\r')
                             continue
                 except ImportError:
                     print("\033[91mAPI Key 被加密，但是没有解密模块。请先下载加密模块。\033[0m")
@@ -503,7 +504,7 @@ def clear_handler(messages):
     return True
 
 def clear_screen():
-    print("\033[2J\033[H", end="", flush=True)
+    print("\033[2J\033[3J\033[H", end="", flush=True)
 
 def passwd_handler(command_args):
     global CONFIG_APIKEY

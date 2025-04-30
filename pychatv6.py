@@ -13,7 +13,8 @@ import copy
 from sys import exit
 
 try:
-    import readline # fix the input bug
+    if not sys.platform.startswith('win'):
+        import readline # fix the input bug
 except Exception:
     pass
 
